@@ -1,13 +1,13 @@
 --pełne dodanie
-curl -H "Content-Type: application/json" -X POST -d '{"nazwa":"test","miasto":"test", "punkty":15}' localhost:8080/teams
+curl -H "Content-Type: application/json" -i -X POST -d '{"nazwa":"test","miasto":"test", "punkty":15}' localhost:8080/teams
 --dodanie bez opcjonalnych punktow
-curl -H "Content-Type: application/json" -X POST -d '{"nazwa":"test","miasto":"test"}' localhost:8080/teams
+curl -H "Content-Type: application/json" -i -X POST -d '{"nazwa":"test","miasto":"test"}' localhost:8080/teams
 --usuwanie obiektu
-curl -H "Content-Type: application/json" -X DELETE localhost:8080/teams/5
+curl -H "Content-Type: application/json" -i -X DELETE localhost:8080/teams/5
 --usuwanie całości
-curl -H "Content-Type: application/json" -X DELETE localhost:8080/teams/
+curl -H "Content-Type: application/json" -i -X DELETE localhost:8080/teams/
 --patchowanie obiektu
-curl -H "Content-Type: application/json" -X PATCH -d '{"nazwa":"test","miasto":"test", "punkty":15}' localhost:8080/teams/1
+curl -H "Content-Type: application/json" -i -X PATCH -d '{"nazwa":"test","miasto":"test", "punkty":15}' localhost:8080/teams/1
 --patchowanie całości
-curl -H "Content-Type: application/json" -X PATCH -d '{{"id":1,"nazwa":"test","miasto":"test", "punkty":15},{"id":1,"nazwa":"test","miasto":"test", "punkty":15}}' localhost:8080/teams/
+curl -H "Content-Type: application/json" -i -X PATCH -d '[{"id": 1, "nazwa":"test1", "miasto":"test1", "punkty":10},{"id": 2, "nazwa":"test2", "miasto":"test2", "punkty":10},{"id": 3, "nazwa":"test3", "miasto":"test3", "punkty":10}]' localhost:8080/teams/
 
