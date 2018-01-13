@@ -1,3 +1,5 @@
+--odczytanie jednego
+curl -H "Content-Type: application/json" -i localhost:8080/teams/1
 --pełne dodanie
 curl -H "Content-Type: application/json" -i -X POST -d '{"nazwa":"test","miasto":"test", "punkty":15}' localhost:8080/teams
 --dodanie bez opcjonalnych punktow

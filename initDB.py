@@ -17,6 +17,11 @@ c.executescript("""
 	INSERT INTO zespoly VALUES(3, 'Arka', 'Gdynia', 31);
 	INSERT INTO zespoly VALUES(4, 'Jagiellonia', 'Bialystok', 36);
 	INSERT INTO zespoly VALUES(5, 'Zaglebie', 'Lublin', 32);
+	INSERT INTO zespoly VALUES(6, 'test', 'test', 19);
+	INSERT INTO zespoly VALUES(7, 'test', 'test', 19);
+	INSERT INTO zespoly VALUES(8, 'test', 'test', 19);
+	INSERT INTO zespoly VALUES(9, 'test', 'test', 19);
+	INSERT INTO zespoly VALUES(10, 'test', 'test', 19);
 """)
 conn.commit()
 c.close()

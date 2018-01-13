@@ -9,8 +9,7 @@ class ErrorHandler(tornado.web.ErrorHandler, tornado.web.RequestHandler):
         self.write(str(status)+" HTTP ERROR\n")
 
 
-
-class ZespolHandler(tornado.web.RequestHandler):
+class HelperHandler(tornado.web.RequestHandler):
     def write_error(self, status_code, **kwargs):
         if 'message' not in kwargs:
             if status_code == 405:
@@ -22,21 +21,62 @@ class ZespolHandler(tornado.web.RequestHandler):
         self.write_json()
         
     def write_json(self):
-        output = json.dumps(self.response)
+        output = json.dumps(self.response,sort_keys=True, indent=4)
         self.write(output)
         
+    def sendResponse(self,message):
+        self.set_header('Content-Type', 'application/json')
+        self.write(json.dumps(message,ensure_ascii=False,sort_keys=True, indent=4)) 
+    
+class ZespolHandler(HelperHandler):
+
+    def put_patch_item(self,id):
+        conn = sqlite3.connect("data/sqlite.db")
+        c = conn.cursor()
+        c.execute("SELECT * FROM zespoly WHERE id = ?", (id,))
+        zespol = c.fetchone()
+        if zespol is None:
+            message = 'No item with this id'
+            self.send_error(400, message=message)
+            return
+        else:
+            try:
+            	json_data = json.loads(self.request.body)
+            except:
+            	message = 'Unable to parse JSON.'
+                self.send_error(400, message=message)
+            	return
+            try:
+            	nazwa = str(json_data["nazwa"])
+            except:
+            	nazwa = zespol[1]
+            try:
+            	miasto = str(json_data["miasto"])
+            except:
+            	miasto = zespol[2]
+            try:
+            	punkty = int(json_data["punkty"])
+            except:
+            	punkty = zespol[3]
+            try:
+            	c.execute("UPDATE zespoly SET nazwa=?, miasto=?, punkty=? WHERE id = ?", (nazwa,miasto,punkty,id))
+            	self.sendResponse({"message":"OK"})
+            except:
+            	message = "Couldn't patch record"
+                self.send_error(500, message=message)
+            conn.commit()
+            c.close()
+            
     def get(self,id):
-        
         conn = sqlite3.connect("data/sqlite.db")
         c = conn.cursor()
         try:
             c.execute("select * from zespoly where id = ?",(id,))
-            self.set_header('Content-Type', 'application/json')
             row = c.fetchone()
             if row is None:
                 raise Exception()
             else:
-        	    self.write(json.dumps({"id": row[0], "nazwa": row[1], "miasto": row[2], "punkty": row[3]},sort_keys=True, indent=4)+"\n")
+                self.sendResponse({"id": row[0], "nazwa": row[1], "miasto": row[2], "punkty": row[3]})
         except:
             message = 'No team member'
             self.send_error(404, message=message)
@@ -53,67 +93,61 @@ class ZespolHandler(tornado.web.RequestHandler):
                 raise Exception()
             c.execute("DELETE FROM zespoly WHERE id = ?", (id,))
             conn.commit()
-            self.set_header('Content-Type', 'application/json')
-            self.write(json.dumps({"message":"OK"}))
+            self.sendResponse({"message":"OK"})
         except:
             message = 'Cannot delete'
             self.send_error(400, message=message)
         c.close()
         
     def patch(self,id):
+        self.put_patch_item(id)
+        
+    def put(self,id):
+        self.put_patch_item(id)
+        
+class ZespolyHandler(HelperHandler):
+    
+    def put_patch_record(self):
         conn = sqlite3.connect("data/sqlite.db")
         c = conn.cursor()
-        c.execute("SELECT * FROM zespoly WHERE id = ?", (id,))
-        row = c.fetchone()
-        if row is None:
-            message = 'No item with this id'
+        try:
+        	json_data = json.loads(self.request.body)
+        except:
+            message = 'Unable to parse JSON.'
             self.send_error(400, message=message)
             return
-        else:
+        for row in json_data:
             try:
-            	json_data = json.loads(self.request.body)
+            	nazwa = str(row["nazwa"])
             except:
-            	message = 'Unable to parse JSON.'
-                self.send_error(400, message=message)
-            	return
+                message="Unable to patch object \n"
+                self.send_error(500, message=message)
+            	continue
             try:
-            	nazwa = str(json_data["nazwa"])
+            	miasto = str(row["miasto"])
             except:
-            	nazwa = row[1]
+            	message="Unable to patch object \n"
+            	self.send_error(500, message=message)
+            	continue
             try:
-            	miasto = str(json_data["miasto"])
+            	punkty = int(row["punkty"])
             except:
-            	miasto = row[2]
+            	punkty = 0
             try:
-            	punkty = int(json_data["punkty"])
-            except:
-            	punkty = row[3]
-            try:
-            	c.execute("UPDATE zespoly SET nazwa=?, miasto=?, punkty=? WHERE id = ?", (nazwa,miasto,punkty,id))
-            	self.write("OK");
+                c.execute("select * from zespoly where id = ?",(int(row["id"]),))
+                zespol = c.fetchone()
+                if zespol is None:
+                    raise Exception()
+                else:
+                    c.execute("UPDATE zespoly SET nazwa=?, miasto=?, punkty=? WHERE id = ?", (nazwa,miasto,punkty,row["id"]))
+                    self.sendResponse({"message":"OK"})
             except:
             	message = "Couldn't patch record"
                 self.send_error(500, message=message)
-            conn.commit()
-            c.close()
-   
-
-
-class ZespolyHandler(tornado.web.RequestHandler):
-    def write_error(self, status_code, **kwargs):
-        if 'message' not in kwargs:
-            if status_code == 405:
-                kwargs['message'] = 'Invalid HTTP method.'
-            else:
-                kwargs['message'] = 'Unknown error.'
-
-        self.response = kwargs
-        self.write_json()
-        
-    def write_json(self):
-        output = json.dumps(self.response)
-        self.write(output)
-        
+                continue
+        conn.commit()
+        c.close()
+    
     def get(self):
         try:
 			page = int(self.get_argument("page"))
@@ -133,8 +167,7 @@ class ZespolyHandler(tornado.web.RequestHandler):
         		respone.append({"id": row[0], "nazwa": row[1], "miasto": row[2], "punkty": row[3]})
         		i+=1
         	j+=1
-        self.set_header('Content-Type', 'application/json')
-        self.write(json.dumps(respone, ensure_ascii=False,sort_keys=True, indent=4))
+        self.sendResponse(respone)
         conn.commit()
         c.close()
 
@@ -165,8 +198,7 @@ class ZespolyHandler(tornado.web.RequestHandler):
         c = conn.cursor()
         try:
             c.execute("INSERT INTO zespoly VALUES(NULL,?,?,?)",(nazwa,miasto,punkty))
-            self.set_header('Content-Type', 'application/json')
-            self.write(json.dumps({"id": c.lastrowid}))
+            self.sendResponse({"id": c.lastrowid})
             conn.commit()
         except:
             message = "Couldn't add record.\n"
@@ -178,8 +210,7 @@ class ZespolyHandler(tornado.web.RequestHandler):
         c = conn.cursor()
         try:
             c.execute("DELETE FROM zespoly")
-            self.set_header('Content-Type', 'application/json')
-            self.write(json.dumps({"message":"OK"}))
+            self.sendResponse({"message":"OK"})
         except:
             message = 'Cannot delete'
             self.send_error(400, message=message)
@@ -187,44 +218,14 @@ class ZespolyHandler(tornado.web.RequestHandler):
         c.close()
 
     def patch(self):
-        conn = sqlite3.connect("data/sqlite.db")
-        c = conn.cursor()
-        try:
-        	json_data = json.loads(self.request.body)
-        except:
-            message = 'Unable to parse JSON.'
-            self.send_error(400, message=message)
-            return
-        for row in json_data:
-            try:
-            	nazwa = str(row["nazwa"])
-            except:
-                message="Unable to patch object \n"
-                self.send_error(500, message=message)
-            	continue
-            try:
-            	miasto = str(row["miasto"])
-            except:
-            	message="Unable to patch object \n"
-            	self.send_error(500, message=message)
-            	continue
-            try:
-            	punkty = int(row["punkty"])
-            except:
-            	punkty = 0
-            try:
-            	c.execute("UPDATE zespoly SET nazwa=?, miasto=?, punkty=? WHERE id = ?", (nazwa,miasto,punkty,row["id"]))
-            	self.write("OK");
-            except:
-            	message = "Couldn't patch record"
-                self.send_error(500, message=message)
-        conn.commit()
-        c.close()
+        self.put_patch_record()
+    
+    def put(self):
+        self.put_patch_record()
+
         
 if __name__ == "__main__":
 	settings = {
-		"autoreload": True,
-		"debug": True,
 		"default_handler_class": ErrorHandler,
 		"default_handler_args": dict(status_code=404)
 	}
