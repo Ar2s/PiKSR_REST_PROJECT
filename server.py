@@ -26,11 +26,22 @@ class HelperHandler(tornado.web.RequestHandler):
         
     def sendResponse(self,message):
         self.set_header('Content-Type', 'application/json')
-        self.write(json.dumps(message,ensure_ascii=False,sort_keys=True, indent=4)) 
+        self.write(json.dumps(message,ensure_ascii=False,sort_keys=True, indent=4))
+    
+    def checkHeader(self):
+        if(self.request.headers["Content-Type"]=="application/json"):
+            return True
+        else:
+            message = 'Wrong Content-Type'
+            self.send_error(400, message=message)
+            return False
+            
     
 class ZespolHandler(HelperHandler):
 
     def put_patch_item(self,id):
+        if(not self.checkHeader()):
+            return
         conn = sqlite3.connect("data/sqlite.db")
         c = conn.cursor()
         c.execute("SELECT * FROM zespoly WHERE id = ?", (id,))
@@ -84,6 +95,8 @@ class ZespolHandler(HelperHandler):
         c.close()
         
     def delete(self, id):
+        if(not self.checkHeader()):
+            return
         conn = sqlite3.connect("data/sqlite.db")
         c = conn.cursor()
         try:
@@ -108,6 +121,8 @@ class ZespolHandler(HelperHandler):
 class ZespolyHandler(HelperHandler):
     
     def put_patch_record(self):
+        if(not self.checkHeader()):
+            return
         conn = sqlite3.connect("data/sqlite.db")
         c = conn.cursor()
         try:
@@ -173,6 +188,8 @@ class ZespolyHandler(HelperHandler):
 
         
     def post(self):
+        if(not self.checkHeader()):
+            return
         try:
             json_data = json.loads(self.request.body)
         except:
@@ -206,6 +223,8 @@ class ZespolyHandler(HelperHandler):
         c.close()
                    
     def delete(self):
+        if(not self.checkHeader()):
+            return
         conn = sqlite3.connect("data/sqlite.db")
         c = conn.cursor()
         try:
